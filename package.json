@@ -2,9 +2,10 @@
   "name": "volery-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "express-api/src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon express-api/src/index.js"
   },
   "repository": {
     "type": "git",
@@ -19,6 +20,7 @@
   },
   "homepage": "https://github.com/OSF-PDX/Volery-server#readme",
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "nodemon": "^3.1.11"
   }
 }
