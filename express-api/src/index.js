@@ -1,13 +1,14 @@
 const express = require("express");
-const http = require("http");
+const salesforceRoutes = require("../routes/salesforce.js");
 
 const app = express();
+
+app.use("/api", salesforceRoutes);
 
 app.listen(3000, () => {
   console.log("Listening on port 3000");
 });
 
 app.get("/", (req, res) => {
-  http.request;
-  res.send("Hello from Express! :3");
+  res.redirect("/api/accounts");
 });
