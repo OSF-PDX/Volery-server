@@ -6,6 +6,9 @@ const crypto = require("crypto");
 const app = express();
 const PORT = 3000;
 
+const cors = require("cors");
+app.use(cors());
+
 // Store access token and PKCE verifier (in production, use proper session management)
 let salesforceAuth = {
   access_token: null,
