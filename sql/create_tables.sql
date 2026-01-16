@@ -4,9 +4,6 @@
 -- Enable pgcrypto
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Enum for user status
-CREATE TYPE user_status AS ENUM ('locked', 'banned');
-
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -14,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   first_name TEXT,
   last_name TEXT,
   last_login TIMESTAMPTZ,
-  status user_status NOT NULL DEFAULT 'locked',
+  locked BOOLEAN NOT NULL DEFAULT TRUE,
   password_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -136,11 +133,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Helper: login(username,password) -> creates session when credentials valid
+-- Helper: login(username,password) -> creates session when credentials valid and user not locked
 CREATE OR REPLACE FUNCTION login(p_username TEXT, p_password TEXT) RETURNS TEXT AS $$
 DECLARE
   _valid BOOLEAN;
   _user_id UUID;
+  _is_locked BOOLEAN;
   _token TEXT;
 BEGIN
   SELECT verify_user_password(p_username, p_password) INTO _valid;
@@ -148,8 +146,12 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  SELECT id INTO _user_id FROM users WHERE username = p_username;
+  SELECT id, locked INTO _user_id, _is_locked FROM users WHERE username = p_username;
   IF _user_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  IF _is_locked THEN
     RETURN NULL;
   END IF;
 
@@ -158,12 +160,47 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Helper: logout(username, session_token) -> deletes the session for the given user
-CREATE OR REPLACE FUNCTION logout(p_username TEXT, p_session_token TEXT) RETURNS BOOLEAN AS $$
+-- Helper: logout(session_token) -> revokes session if user is not locked, fails if user is locked
+CREATE OR REPLACE FUNCTION logout(p_session_token TEXT) RETURNS BOOLEAN AS $$
+DECLARE
+  _username TEXT;
+  _is_locked BOOLEAN;
+BEGIN
+  SELECT username INTO _username FROM sessions WHERE session_token = p_session_token;
+  IF _username IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
+  SELECT locked INTO _is_locked FROM users WHERE username = _username;
+  IF _is_locked THEN
+    RETURN FALSE;
+  END IF;
+
+  RETURN revoke_session(p_session_token);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Helper: logout all sessions for a username
+CREATE OR REPLACE FUNCTION logout_all_sessions(p_username TEXT) RETURNS BOOLEAN AS $$
 BEGIN
   DELETE FROM sessions
-  WHERE username = p_username
-    AND session_token = p_session_token;
+  WHERE username = p_username;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Helper: lock(username) -> sets locked field to true
+CREATE OR REPLACE FUNCTION lock(p_username TEXT) RETURNS BOOLEAN AS $$
+BEGIN
+  UPDATE users SET locked = TRUE WHERE username = p_username;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Helper: unlock(username) -> sets locked field to false
+CREATE OR REPLACE FUNCTION unlock(p_username TEXT) RETURNS BOOLEAN AS $$
+BEGIN
+  UPDATE users SET locked = FALSE WHERE username = p_username;
   RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
