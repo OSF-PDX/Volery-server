@@ -205,8 +205,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Helper: delete_user(username) -> removes user and all associated sessions
+CREATE OR REPLACE FUNCTION delete_user(p_username TEXT) RETURNS BOOLEAN AS $$
+BEGIN
+  DELETE FROM users WHERE username = p_username;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Sample usage (comments):
 -- SELECT create_user('alice','Alice','Doe','S3cret!');
+-- SELECT delete_user('alice'); -- removes user and sessions
 -- SELECT verify_user_password('alice','S3cret!');
 -- SELECT set_user_password('<uuid-here>','NewP@ssw0rd');
 -- SELECT create_session('<user-uuid>'); -- returns session token
