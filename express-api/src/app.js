@@ -71,9 +71,9 @@ app.get("/", (req, res) => {
   const credentialsConfigured = API_USERNAME && API_PASSWORD;
 
   res.send(`
-      <h1>API Integration</h1>
+      <h1>Volery Admin Panel</h1>
       <p>Status: ${credentialsConfigured ? "✅ Configured" : "❌ Credentials Missing"}</p>
-      ${credentialsConfigured ? '<p><a href="/sessions">View Sessions</a></p>' : "</p>Please configure API_USERNAME and API_PASSWORD in your .env file</p>"}
+      ${credentialsConfigured ? '<p><a href="/sessions">View NTC 2026 Sessions</a></p>' : "</p>Please configure API_USERNAME and API_PASSWORD in your .env file</p>"}
     `);
 });
 
